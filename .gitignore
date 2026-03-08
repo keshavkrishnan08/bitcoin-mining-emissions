@@ -14,7 +14,9 @@ code/generate_report_final.py
 
 # PDFs / papers
 *.pdf
-!code/report.tex
+
+# Report source
+code/report.tex
 
 # macOS
 .DS_Store

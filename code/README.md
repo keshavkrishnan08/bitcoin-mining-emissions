@@ -24,16 +24,7 @@ Tests claims from Li, Ren, and Bellos (2026) using public EIA data for Texas, 20
    python3 code/ercot_analysis.py
    ```
 
-Figures go to `output/`. The report is `code/report.tex`.
-
-## What each script does
-
-| Script | Purpose |
-|---|---|
-| `analysis.py` | Main analysis. Loads EIA 860/923 for Texas. Tests demand-supply correlation, renewable volatility, capacity factor distributions, emission trends, cross-state comparisons. Makes Figures 1-8. |
-| `calibration.py` | Maps the paper's model parameters to real EIA numbers. Checks which case from Section 3.6.3 applies at monthly vs hourly resolution. |
-| `did_analysis.py` | Diff-in-diff comparing TX renewable growth to five control states around China's 2021 mining ban. Includes parallel trends test. |
-| `ercot_analysis.py` | Downloads EIA-930 hourly ERCOT data. Compares hourly vs monthly variability for wind and solar. Finds hours with >50% renewable share. |
+Figures go to `output/`.
 
 ## Data sources
 
