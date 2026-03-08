@@ -1,0 +1,34 @@
+# Data files (too large for git, see README for download links)
+data/
+
+# Generated output (figures, PDFs)
+output/
+
+# Report PDF (compiled from report.tex)
+code/report.pdf
+
+# Report generator scripts (not part of the analysis)
+code/generate_report.py
+code/generate_report_v2.py
+code/generate_report_final.py
+
+# PDFs / papers
+*.pdf
+!code/report.tex
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Python
+__pycache__/
+*.pyc

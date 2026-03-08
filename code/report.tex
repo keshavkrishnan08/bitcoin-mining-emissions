@@ -1,0 +1,299 @@
+\documentclass[11pt, letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{enumitem}
+
+\usepackage{caption}
+\usepackage[compact]{titlesec}
+
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\linespread{1.15}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+\captionsetup{font=small, labelfont=bf, skip=3pt}
+\setlist[itemize]{nosep, leftmargin=1.2em, topsep=3pt, itemsep=2pt}
+
+\title{\vspace{-1.5cm}\textbf{Evaluating Bitcoin Mining for\\Carbon Emission Reduction}}
+\author{Keshav Krishnan\\\small ASSIP Screening Task 1 \quad|\quad March 2026}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-0.4cm}
+
+\noindent\fbox{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule}{%
+\small\textbf{Summary:} I tested five claims from Li, Ren, and Bellos (2026) using EIA data for Texas (2019--2023) and EIA-930 hourly grid data. Four hold up: demand and supply are weakly correlated ($r = 0.19$), renewable supply is 1.5$\times$ more volatile than demand (3.3$\times$ hourly), solar+wind capacity grew 81\%, and CO$_2$ intensity fell 10.2\%. One does not: capacity factors follow a Beta distribution, not uniform (KS $p < 0.001$). But the paper's conclusions still survive. Switching from monthly to hourly data flips which outcome the model predicts. I also check how well the model fits different electricity market types.
+}}
+
+\vspace{6pt}
+
+% ── 1. DATA ───────────────────────────────────────────
+\section{Data}
+
+The paper (Li, Ren, and Bellos, 2026; hereafter ``the paper'') argues that Bitcoin mining can reduce emissions by soaking up extra renewable electricity. To test this, I used three public EIA datasets:
+
+\begin{itemize}
+\item \textbf{EIA Form 860}, sheet ``3\_1\_Generator (Operable)'': Plant Code, State, Maximum Capacity (MW), Energy Source 1.
+\href{https://www.eia.gov/electricity/data/eia860/}{eia.gov/electricity/data/eia860/}
+\item \textbf{EIA Form 923}, ``Page 1 Generation and Fuel Data'': Plant Id, State, Reported Fuel Type Code, monthly Net Generation (MWh).
+\href{https://www.eia.gov/electricity/data/eia923/}{eia.gov/electricity/data/eia923/}
+\item \textbf{EIA-930 Hourly Grid Monitor}: Hourly demand and generation by source for ERCOT ($n = 8{,}760$ hours, 2023). \href{https://www.eia.gov/electricity/gridmonitor/}{eia.gov/electricity/gridmonitor/}
+\item \textbf{EPA eGRID} (2022, Table 1): ERCOT CO$_2$ emission factor, 0.386 MT/MWh fossil average.
+\href{https://www.epa.gov/egrid}{epa.gov/egrid}
+\end{itemize}
+
+I grouped fuels by EIA code: SUN/WND $\to$ solar+wind, hydro/geo/biomass $\to$ other renewable, NUC $\to$ nuclear, everything else $\to$ fossil. Focus on Texas/ERCOT (largest grid with both mining and renewables), 2019--2023.
+
+
+% ── 2. ANALYSES ───────────────────────────────────────
+\section{Analyses and Findings}
+
+\subsection{Does mining coincide with more renewable capacity? (Proposition 1)}
+
+\textbf{What I computed:} Total maximum capacity by fuel type and year from Form 860, added up for Texas.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+& 2019 & 2020 & 2021 & 2022 & 2023 \\
+\midrule
+Solar+Wind (GW) & 30.5 & 35.0 & 43.2 & 50.7 & 55.4 \\
+Fossil (GW) & 98.6 & 97.6 & 100.5 & 102.4 & 103.9 \\
+SW addition rate (MW/yr) & -- & 4,480 & 8,221 & 7,498 & 4,661 \\
+Renewable share of gen & 18.8\% & 21.9\% & 24.2\% & 26.5\% & 27.4\% \\
+CO$_2$ intensity (kg/MWh) & 280 & 268 & 260 & 253 & 252 \\
+\bottomrule
+\end{tabular}
+\caption{Texas capacity and generation summary (EIA 860 + 923).}
+\end{table}
+
+\textbf{Finding:} Solar+wind grew 81\% (+24.9 GW) while fossil barely changed (+5.4\%). CO$_2$ per MWh fell 10.2\% even as total generation grew 13.3\%. New additions peaked in 2021--22 ($\sim$7,860 MW/yr) then slowed to 4,661 in 2023. Growth is real but front-loaded.
+
+I compared TX to five wind-heavy states (IL, IA, OK, KS, MN) as a quick check. TX added $\sim$15,000 MW more than expected, but it was already growing faster \textit{before} the China ban. So this is suggestive, not proof. Halaburda and Yermack (2023) find a similar pattern: TX miners using wind power shut down more often but earn more, because they buy cheap electricity during oversupply. That's the ``shock absorber'' role the paper predicts.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig1_texas_capacity.png}
+\caption{Texas capacity by source (EIA 860).}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig2_texas_generation_mix.png}
+\caption{Generation mix and renewable trend.}
+\end{minipage}
+\end{figure}
+
+
+\subsection{Are demand and renewable supply actually uncorrelated? (\S3.1)}
+
+\textbf{What I computed:} Pearson and Spearman correlation between monthly total generation (stand-in for $\tilde{D}$) and renewable generation (stand-in for $\tilde{S} \cdot k$). 60 months.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Test & Value & $p$-value \\
+\midrule
+Pearson $r$ & 0.192 & 0.142 \\
+Spearman $\rho$ & 0.180 & 0.168 \\
+\bottomrule
+\end{tabular}
+\caption{Demand-supply correlation (monthly, $n = 60$). Neither is significant at 5\%.}
+\end{table}
+
+\textbf{Finding:} Demand peaks in summer (AC). Wind peaks in spring. Different seasonal cycles mean high-demand months tell you little about renewable output. Li et al.\ argue this mismatch is what makes mining useful as a flexible load. Low correlation doesn't mean full independence, but the scatter plot (Fig.~3) shows no obvious pattern either.
+
+
+\subsection{Is renewable supply more volatile? (\S3.1)}
+
+\textbf{What I computed:} Coefficient of variation (std/mean) for monthly total demand vs.\ monthly renewable generation.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& Mean (TWh/mo) & Std (TWh/mo) & CV \\
+\midrule
+Total demand & 41.9 & 6.4 & 0.153 \\
+Renewable generation & 10.3 & 2.3 & 0.222 \\
+\midrule
+\multicolumn{3}{@{}l}{Ratio (renewable / demand)} & 1.45$\times$ \\
+\bottomrule
+\end{tabular}
+\caption{Supply is roughly 1.5$\times$ more variable than demand (monthly).}
+\end{table}
+
+\textbf{Finding:} Renewable output swings more than demand month-to-month. This supports the need for a flexible load. The gap gets bigger when you zoom in: hourly wind CV is 0.51 vs.\ 0.16 monthly (a 3.3$\times$ ratio). Monthly data hides how much volatility miners would actually face.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig3_demand_supply_correlation.png}
+\caption{Demand vs.\ renewable supply. Color = month.}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig4_seasonal_patterns.png}
+\caption{Seasonal demand and supply patterns.}
+\end{minipage}
+\end{figure}
+
+
+\subsection{Is the uniform distribution assumption for $\tilde{S}$ valid? (\S3.6.2)}
+
+\textbf{What I computed:} Capacity factor (CF $=$ actual output / max possible output) for each TX renewable generator. KS test against Uniform and Beta fit for comparison.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& Wind ($n = 949$) & Solar ($n = 386$) \\
+\midrule
+Mean CF & 0.324 & 0.211 \\
+Std & 0.118 & 0.072 \\
+Range & 0.01--0.56 & 0.01--0.33 \\
+\% within 1 std of mean & 69\% & 72\% \\
+KS stat vs.\ Uniform & 0.204 & 0.283 \\
+KS $p$-value & $< 0.001$ & $< 0.001$ \\
+\midrule
+Fitted Beta$(\alpha, \beta)$ & Beta(2.60, 2.25) & Beta(2.58, 1.80) \\
+\bottomrule
+\end{tabular}
+\caption{Capacity factor distributions reject uniformity; Beta fits better.}
+\end{table}
+
+\textbf{Finding:} This is where the data pushes back on the paper.
+\begin{itemize}
+\item Both distributions are bell-shaped, not uniform. KS test strongly rejects ($p < 0.001$)
+\item The uniform assumption overestimates how often output is near-zero or near-max
+\item A Beta distribution fits better. Wind: Beta(2.60, 2.25). Solar: Beta(2.58, 1.80). Both have a single peak rather than a flat line.
+\item The important thing still holds: CFs vary a lot. The paper's conclusions probably still work with a Beta, but the exact cutoffs in \S3.6.3 would shift.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{../output/fig5_capacity_factors.png}
+\caption{Capacity factor distributions vs.\ uniform benchmark (green).}
+\end{figure}
+
+
+\subsection{Is the residual demand actually shrinking? (Eq.\ 11--12)}
+
+\textbf{What I computed:} CO$_2$ $=$ fossil generation $\times$ 0.386 MT/MWh (EPA eGRID). Fossil share $=$ fossil / total. Linear trend over 60 months.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Metric & Value \\
+\midrule
+CO$_2$ intensity change & 280 $\to$ 252 kg/MWh ($-$10.2\%) \\
+Fossil share trend & $-2.0$ pp/yr ($p < 0.001$, $R^2 = 0.24$) \\
+Interpretation & $\max\{D - S \cdot k, 0\}$ shrinking as $k$ grows \\
+\bottomrule
+\end{tabular}
+\caption{Fossil share declining. This is the flip side of the renewable share trend in \S2.1 (same regression). Low $R^2$ reflects monthly noise around a clear downward trend.}
+\end{table}
+
+\textbf{Finding:} This is the most direct test of the paper's prediction, and it holds. Fossil's share is steadily shrinking as renewable capacity grows.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig7_texas_emissions.png}
+\caption{Total CO$_2$ and emission intensity.}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../output/fig8_residual_demand.png}
+\caption{Residual (fossil) demand share declining.}
+\end{minipage}
+\end{figure}
+
+
+% ── 3. CALIBRATION ────────────────────────────────────
+\section{Calibration: Resolution Changes the Answer}
+
+When I tried mapping the model's parameters to real EIA data for Texas 2023, I ran into something I didn't expect: the answer changes depending on whether you use monthly or hourly data.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& Monthly resolution & Hourly resolution \\
+\midrule
+$\bar{S}$ & $\approx 0.35$ & $\approx 0.57$ \\
+$C/(c\bar{S})$ & $\approx 1.04$ & $\approx 0.64$ \\
+Model prediction & Case 1 (no RE investment) & Case 2 (mining helps) \\
+\bottomrule
+\end{tabular}
+\caption{Using different time scales flips which outcome the model predicts.}
+\end{table}
+
+\begin{itemize}
+\item Monthly averages compress the true range of renewable output.
+\item Hourly ERCOT data (EIA-930): wind swings from near-zero to 26.3 GW within days. 1,143 hours (13\% of the year) had renewable shares above 50\%.
+\item Monthly $\bar{S} \approx 0.35$ $\rightarrow$ Case 1 (no new renewables). Hourly $\bar{S} \approx 0.57$ $\rightarrow$ Case 2 (mining helps).
+\item Same data, opposite conclusions. Calibration needs hourly data at minimum.
+\item Hu et al.\ (2015) make the same point: how often you measure matters a lot for renewable investment conclusions.
+\end{itemize}
+
+
+% ── 4. REGULATORY ENVIRONMENTS ────────────────────────
+\section{Model Fit Across Regulatory Environments}
+
+The paper assumes a regulator sets prices $p$ and $P(\cdot)$. Borenstein and Bushnell (2015) lay out three structures:
+
+\begin{itemize}
+\item \textbf{Regulated} (Southeast, Midwest). Best fit. PUC sets rates and approves investments, matching Eqs.\ 14--15. Could work as a mining-specific interruptible tariff.
+
+\item \textbf{Restructured} (ERCOT, PJM, CAISO). Prices come from markets, not a regulator. The idea still makes sense: renewables flood the grid, prices drop, miners absorb the extra. But nobody ``sets'' the price. Market power can mess up price signals (Borenstein, Bushnell, and Wolak, 2002). Capacity markets create incentives the model doesn't account for (Joskow, 2008).
+
+\item \textbf{Municipal}. Publicly owned, trying to maximize public good. The regulator and the utility are the same entity. No misaligned incentives. Proposition 1 fits best here.
+\end{itemize}
+
+One way to think about it: let $\alpha \in [0,1]$ represent how much the utility cares about public welfare vs.\ profit. $\alpha = 1$: social planner. $\alpha = 0$: pure profit. The paper assumes something close to $\alpha = 1$.
+
+
+% ── 5. LIMITATIONS ────────────────────────────────────
+\section{Limitations}
+
+\begin{itemize}
+\item Monthly data misses the quick swings that cause curtailment. Hourly helps (\S3), but even that is rougher than the near-instant adjustments the paper describes.
+\item EIA doesn't track mining usage separately. I can see big-picture patterns, not what miners actually do.
+\item Everything here is correlation. Mining-friendly states might just be good for renewables anyway. I tried diff-in-diff to get closer to causation, but the pre-trend didn't hold. Suggestive, not proof.
+\item ERCOT is unique (energy-only market, no capacity payments). One grid is one grid.
+\end{itemize}
+
+
+% ── REFERENCES ────────────────────────────────────────
+\section{References}
+\small
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=3pt]
+\item Borenstein, S. and J. Bushnell (2015). ``The US Electricity Industry After 20 Years of Restructuring.'' \textit{Annual Review of Economics}, 7, 437--463.
+\item Borenstein, S., J. Bushnell, and F. Wolak (2002). ``Measuring Market Inefficiencies in California's Restructured Wholesale Electricity Market.'' \textit{American Economic Review}, 92(5), 1376--1405.
+\item Halaburda, H. and D. Yermack (2023). ``Bitcoin Mining Meets Wall Street: A Study of Publicly Traded Crypto Mining Companies.'' NBER Working Paper No.\ 31849.
+\item Hu, S., G. Souza, M. Ferguson, and W. Wang (2015). ``Capacity Investment in Renewable Energy Technology with Supply Intermittency: Data Granularity Matters!'' \textit{Manufacturing \& Service Operations Management}, 17(4), 480--494.
+\item Joskow, P. (2008). ``Lessons Learned from Electricity Market Liberalization.'' \textit{The Energy Journal}, 29(S2), 9--42.
+\item Li, J., H. Ren, and I. Bellos (2026). ``Bitcoin Mining (and maybe AI training) for Carbon Emission Reduction.'' Working Paper, George Mason University.
+\end{itemize}
+\normalsize
+
+\vspace{6pt}
+\hrule
+\vspace{4pt}
+{\small\noindent\textbf{Code:} \texttt{analysis.py}, \texttt{calibration.py}, \texttt{did\_analysis.py}, \texttt{ercot\_analysis.py}. See \texttt{README.md} for setup. All data from public EIA/EPA sources.}
+
+\end{document}
