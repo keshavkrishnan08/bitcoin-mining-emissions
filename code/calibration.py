@@ -122,9 +122,26 @@ print(f"    S_std:       {S_std:.3f}")
 k_current = tx_sw_cap / 1000  # Convert MW to GW
 print(f"\n  k (Current renewable capacity): {k_current:.1f} GW")
 
-# c: fossil fuel cost (natural gas marginal cost in ERCOT)
-c = 30  # $/MWh (natural gas marginal cost, ERCOT average)
-print(f"\n  c (Fuel cost): ${c}/MWh (natural gas marginal cost estimate)")
+# c: fossil fuel cost from EIA 923 Page 5 (Fuel Receipts and Costs)
+# FERC Form 1 has utility cost data, but ERCOT T&D utilities (Oncor, CenterPoint)
+# own no generation — merchant generators (Vistra, NRG) don't file Form 1.
+# So we pull actual fuel costs from EIA 923 Page 5 instead.
+fuel_df = pd.read_excel(
+    f"{DATA}/eia923_2023/EIA923_Schedules_2_3_4_5_M_12_2023_Final_Revision.xlsx",
+    sheet_name='Page 5 Fuel Receipts and Costs', header=4)
+tx_fuel = fuel_df[fuel_df['Plant State'] == 'TX']
+ng_fuel = tx_fuel[tx_fuel['FUEL_GROUP'] == 'Natural Gas'].copy()
+ng_fuel['FUEL_COST'] = pd.to_numeric(ng_fuel['FUEL_COST'], errors='coerce')
+ng_fuel['QUANTITY'] = pd.to_numeric(ng_fuel['QUANTITY'], errors='coerce')
+ng_valid = ng_fuel.dropna(subset=['FUEL_COST', 'QUANTITY'])
+ng_valid = ng_valid[(ng_valid['QUANTITY'] > 0) & (ng_valid['FUEL_COST'] > 0)]
+gas_cost_mmbtu = (ng_valid['FUEL_COST'] * ng_valid['QUANTITY']).sum() / ng_valid['QUANTITY'].sum()
+heat_rate = 8.0  # MMBtu/MWh (TX fleet average)
+c = gas_cost_mmbtu / 100 * heat_rate  # cents/MMBtu -> $/MWh
+print(f"\n  c (Fuel cost): ${c:.1f}/MWh")
+print(f"    Source: EIA 923 Page 5, TX natural gas, weighted avg {gas_cost_mmbtu:.0f} cents/MMBtu")
+print(f"    Heat rate: {heat_rate} MMBtu/MWh (fleet average)")
+print(f"    Note: FERC Form 1 not usable — ERCOT T&D utilities own no generation")
 
 # C: renewable capacity cost (from NREL ATB 2023)
 C_wind = 1300   # $/kW
@@ -382,7 +399,7 @@ print(f"""
 | S_bar (max CF)   | ~0.50              | {S_bar:.3f}                          | EIA 860+923 (2023)   |
 | S_min            | 0                  | {S_min:.3f}                          | EIA 860+923 (2023)   |
 | k (renew. cap.)  | --                 | {k_current:.1f} GW                   | EIA 860 (2023)       |
-| c (fuel cost)    | $0.03-0.15/kWh     | ${c}/MWh (${c/10:.1f}c/kWh)         | ERCOT wholesale      |
+| c (fuel cost)    | $0.03-0.15/kWh     | ${c:.0f}/MWh (${c/10:.1f}c/kWh)     | EIA 923 Pg5 (2023)   |
 | C (renew. cost)  | --                 | ~${C_per_mwh_cap:.0f}/MWh-cap        | NREL ATB 2023        |
 | p (retail price) | $0.15/kWh          | ${p}/MWh (${p/10:.1f}c/kWh)         | EIA retail data      |
 | n (mining pools) | 30                 | 30                                   | Industry consensus   |
