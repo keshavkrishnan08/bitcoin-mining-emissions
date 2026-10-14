@@ -124,7 +124,7 @@ print(f"\n  k (Current renewable capacity): {k_current:.1f} GW")
 
 # c: fossil fuel cost from EIA 923 Page 5 (Fuel Receipts and Costs)
 # FERC Form 1 has utility cost data, but ERCOT T&D utilities (Oncor, CenterPoint)
-# own no generation — merchant generators (Vistra, NRG) don't file Form 1.
+# own no generation: merchant generators (Vistra, NRG) don't file Form 1.
 # So we pull actual fuel costs from EIA 923 Page 5 instead.
 fuel_df = pd.read_excel(
     f"{DATA}/eia923_2023/EIA923_Schedules_2_3_4_5_M_12_2023_Final_Revision.xlsx",
