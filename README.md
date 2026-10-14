@@ -12,6 +12,9 @@ model's cost parameters fall in the region where the emission reduction holds. T
 each premise with public EIA data for Texas, one of the states the code treats as a mining
 destination after China's September 2021 ban. It was built as an ASSIP research screening task
 under Dr. Jiasun Li (Costello College of Business, George Mason University).
+The program's main project, a model of how flexible AI and crypto loads change grid carbon, was
+later published as [The Carbon Effect of Flexible Computing Loads](https://doi.org/10.13021/jssr2026.5665)
+in the Journal of Student-Scientists' Research (2026).
 
 ```
 EIA Form 860 (capacity) + Form 923 (monthly generation, fuel receipts), 2019 to 2023
