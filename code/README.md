@@ -12,8 +12,8 @@ Tests claims from Li, Ren, and Bellos (2026) using public EIA data for Texas, 20
    ```
 
 2. Download EIA data and unzip into `../data/`:
-   - [EIA Form 860](https://www.eia.gov/electricity/data/eia860/) (2019-2023) — put each year in `data/eia860_YYYY/`
-   - [EIA Form 923](https://www.eia.gov/electricity/data/eia923/) (2019-2023) — put each year in `data/eia923_YYYY/`
+   - [EIA Form 860](https://www.eia.gov/electricity/data/eia860/) (2019-2023), put each year in `data/eia860_YYYY/`
+   - [EIA Form 923](https://www.eia.gov/electricity/data/eia923/) (2019-2023), put each year in `data/eia923_YYYY/`
    - EIA-930 hourly data downloads automatically when you run `ercot_analysis.py`
 
 3. Run from the project root:
