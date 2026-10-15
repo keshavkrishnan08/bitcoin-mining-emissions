@@ -555,7 +555,7 @@ print(f"""
    → {'SUPPORTS' if abs(pearson_r) < 0.5 else 'PARTIALLY SUPPORTS'}: Paper assumes imperfect correlation
 
 3. SUPPLY VARIABILITY (EIA 923):
-   Renewable CV ({cv_renewable:.3f}) vs Demand CV ({cv_demand:.3f}),{cv_renewable/cv_demand:.1f}x ratio
+   Renewable CV ({cv_renewable:.3f}) vs Demand CV ({cv_demand:.3f}), {cv_renewable/cv_demand:.1f}x ratio
    → SUPPORTS: Renewable supply is more volatile, justifying shock absorber role
 
 4. CAPACITY FACTORS (EIA 860 + 923):
