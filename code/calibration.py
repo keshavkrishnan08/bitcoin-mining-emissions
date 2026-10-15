@@ -141,7 +141,7 @@ c = gas_cost_mmbtu / 100 * heat_rate  # cents/MMBtu -> $/MWh
 print(f"\n  c (Fuel cost): ${c:.1f}/MWh")
 print(f"    Source: EIA 923 Page 5, TX natural gas, weighted avg {gas_cost_mmbtu:.0f} cents/MMBtu")
 print(f"    Heat rate: {heat_rate} MMBtu/MWh (fleet average)")
-print(f"    Note: FERC Form 1 not usable — ERCOT T&D utilities own no generation")
+print(f"    Note: FERC Form 1 not usable, ERCOT T&D utilities own no generation")
 
 # C: renewable capacity cost (from NREL ATB 2023)
 C_wind = 1300   # $/kW

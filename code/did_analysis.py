@@ -132,7 +132,7 @@ ax.legend(fontsize=9, loc="upper left")
 ax.set_xticks(YEARS)
 ax.grid(axis="y", alpha=0.3)
 
-fig.suptitle("Parallel Trends: TX vs Control States — Solar+Wind Capacity",
+fig.suptitle("Parallel Trends: TX vs Control States, Solar+Wind Capacity",
              fontsize=14, fontweight="bold", y=1.02)
 fig.tight_layout()
 fig.savefig(OUTPUT / "did_parallel_trends.png", dpi=200, bbox_inches="tight")
